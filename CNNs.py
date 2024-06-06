@@ -9,6 +9,7 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from tensorflow.keras.regularizers import l2
 from tensorflow.keras.utils import to_categorical
 from sklearn.model_selection import StratifiedKFold
+from sklearn.utils import resample
 
 # Function to extract Mel-spectrograms from WAV files with optimizations
 def extract_features(file_path, sr=22050, n_mels=32, duration=2):
@@ -75,13 +76,22 @@ id_col = 'id'
 genre_col = 'genres'
 
 # Extract genres from CSV
-genres = df[genre_col].unique().tolist()
+genres = df[genre_col].value_counts().index[:4].tolist()  # Select top 4 genres
+df_filtered = df[df[genre_col].isin(genres)]
+
+# Ensure equal number of samples per genre
+samples_per_genre = df_filtered[genre_col].value_counts().min()
+
+balanced_df = pd.DataFrame()
+for genre in genres:
+    genre_df = df_filtered[df_filtered[genre_col] == genre]
+    balanced_df = pd.concat([balanced_df, genre_df.sample(n=samples_per_genre, random_state=42)])
 
 # Determine the maximum length for padding
 max_len = 0
 features_list = []
 
-for index, row in df.iterrows():
+for index, row in balanced_df.iterrows():
     file_id = row[id_col]
     file_path = find_file_by_id(data_dir, file_id)
     
