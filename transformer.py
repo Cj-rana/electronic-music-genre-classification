@@ -79,13 +79,22 @@ id_col = 'id'
 genre_col = 'genres'
 
 # Extract genres from CSV
-genres = df[genre_col].unique().tolist()
+genres = df[genre_col].value_counts().index[:4].tolist()  # Select top 4 genres
+df_filtered = df[df[genre_col].isin(genres)]
+
+# Ensure equal number of samples per genre
+samples_per_genre = df_filtered[genre_col].value_counts().min()
+
+balanced_df = pd.DataFrame()
+for genre in genres:
+    genre_df = df_filtered[df_filtered[genre_col] == genre]
+    balanced_df = pd.concat([balanced_df, genre_df.sample(n=samples_per_genre, random_state=42)])
 
 # Determine the maximum length for padding
 max_len = 0
 features_list = []
 
-for index, row in df.iterrows():
+for index, row in balanced_df.iterrows():
     file_id = row[id_col]
     file_path = find_file_by_id(data_dir, file_id)
     
@@ -145,9 +154,9 @@ else:
     print(f'Standard deviation: {np.std(cvscores):.2f}%')
 
     # Load the three tracks and classify
-    track1 = '/Users/cj/Documents/model_training/melody.wav'
-    track2 = '/Users/cj/Documents/model_training/velocity.wav'
-    track3 = '/Users/cj/Documents/model_training/retro.wav'
+    track1 = '/Users/cj/Documents/model_training/melody1.wav'
+    track2 = '/Users/cj/Documents/model_training/velocity1.wav'
+    track3 = '/Users/cj/Documents/model_training/retro1.wav'
 
     # Assuming the last trained model is used for classification
     genre1 = classify_track(model, track1, max_len, genres)
